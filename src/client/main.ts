@@ -1,9 +1,8 @@
 import {fromEvent, map, tap, merge, shareReplay} from "rxjs";
+import {serverMessages$, sendMessage} from "./connection";
 
 const form = document.getElementById("form")!;
-const userMessages$ = fromEvent<FormDataEvent>(form, 'submit');
-
-userMessages$.pipe(
+const userMessages$ = fromEvent<FormDataEvent>(form, 'submit').pipe(
     // First, prevent the default form submission behavior
     tap((e: Event) => {
       e.preventDefault();
@@ -26,12 +25,19 @@ userMessages$.pipe(
         timestamp: new Date()
       };
     }),
+    
+    shareReplay(),
+
+  );
   
-    // Debugging: log the message object to the console
-    tap((message: Message) => {
-      console.log('Message sent:', message);
-    })
-  ).subscribe(message => {
+userMessages$.subscribe(message => {
+    sendMessage(message);
+    console.log(message);
+});
+
+const messages$ = merge(userMessages$, serverMessages$);
+
+messages$.subscribe((message:Message) => {
     console.log("message", message)
     const newMessage = document.createElement("li");
     newMessage.innerHTML = 
@@ -42,6 +48,9 @@ userMessages$.pipe(
     newMessage.classList.add(message.action);
     document.getElementById("messages")!.appendChild(newMessage);
 });
+
+
+
 
 
 
